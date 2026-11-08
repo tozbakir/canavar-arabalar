@@ -453,12 +453,13 @@
           color: '#ffd000',
           life: 0,
           maxLife: 1.0,
-          scale: 1
+          scale: 1,
+          withStar: false
         };
       }
     }
 
-    spawn(x, y, text, color, scale) {
+    spawn(x, y, text, color, scale, withStar) {
       for (let i = 0; i < this.size; i++) {
         const item = this.items[i];
         if (!item.active) {
@@ -471,6 +472,7 @@
           item.life = 0;
           item.maxLife = 1.05;
           item.scale = scale || 1;
+          item.withStar = Boolean(withStar);
           return;
         }
       }
@@ -480,6 +482,7 @@
       ctx.save();
       ctx.textAlign = 'center';
       ctx.lineJoin = 'round';
+      const starSprite = SpriteCache.starSprite;
 
       for (let i = 0; i < this.size; i++) {
         const item = this.items[i];
@@ -504,9 +507,27 @@
         ctx.font = `900 ${fontSize}px "Arial Black", sans-serif`;
         ctx.strokeStyle = '#091428';
         ctx.lineWidth = 6;
-        ctx.strokeText(item.text, sx, sy);
-        ctx.fillStyle = item.color;
-        ctx.fillText(item.text, sx, sy);
+
+        if (item.withStar && starSprite && starSprite.canvas) {
+          const textW = ctx.measureText(item.text).width;
+          const iconSize = Math.round(26 * item.scale);
+          const totalOffset = (iconSize + 4) * 0.5;
+          const tx = sx - totalOffset;
+          ctx.strokeText(item.text, tx, sy);
+          ctx.fillStyle = item.color;
+          ctx.fillText(item.text, tx, sy);
+          ctx.drawImage(
+            starSprite.canvas,
+            tx + textW * 0.5 + 4,
+            sy - iconSize * 0.82,
+            iconSize,
+            iconSize
+          );
+        } else {
+          ctx.strokeText(item.text, sx, sy);
+          ctx.fillStyle = item.color;
+          ctx.fillText(item.text, sx, sy);
+        }
       }
       ctx.restore();
     }
@@ -1090,7 +1111,7 @@
         this.rearSus = this.restSuspension + 12;
         this.frontSus = this.restSuspension + 12;
         sound.playBoing();
-        floatingTexts.spawn(this.x, this.y - 75, 'HOP! ⬆️', '#00e5ff', 1.0);
+        floatingTexts.spawn(this.x, this.y - 75, 'HOP!', '#00e5ff', 1.05);
         for (let i = 0; i < 10; i++) {
           particles.spawn(
             this.x + (Math.random() - 0.5) * 80,
@@ -1119,7 +1140,7 @@
         this.vy = Math.min(this.vy, -190);
       }
       sound.playHorn();
-      floatingTexts.spawn(this.x + 20, this.y - 85, 'DÜÜT DÜÜT! 📢', '#ffd000', 1.05);
+      floatingTexts.spawn(this.x + 20, this.y - 85, 'DÜÜT DÜÜT!', '#ffd000', 1.05);
       const colors = ['#ffd000', '#ff5500', '#00e5ff', '#5ce62e'];
       for (let i = 0; i < 12; i++) {
         particles.spawn(
@@ -1298,7 +1319,7 @@
               floatingTexts.spawn(
                 this.x + 30,
                 this.y - 70,
-                activeRamp.kind === 'mega' ? 'MEGA MAVİ RAMPA! 🚀' : 'UÇUŞA GEÇ! 🌊',
+                activeRamp.kind === 'mega' ? 'MEGA MAVİ RAMPA!' : 'SÜPER UÇUŞ!',
                 '#00e5ff',
                 activeRamp.kind === 'mega' ? 1.25 : 1.05
               );
@@ -1357,7 +1378,7 @@
           this.vAngle = 0;
           if (!this.isAI) {
             sound.playBoing();
-            floatingTexts.spawn(this.x, this.y - 70, 'OTOMATİK DÜZELDİ! 🔄', '#5ce62e', 1.1);
+            floatingTexts.spawn(this.x, this.y - 70, 'OTOMATİK DÜZELDİ!', '#5ce62e', 1.1);
           }
         }
       } else {
@@ -1896,6 +1917,7 @@
         nitro: false
       };
       this.activePointers = new Map();
+      this.activeKeys = new Set();
 
       // Oyuncu ve Arkadaş (Buddy) Canavar Arabaları (Yan yana net görünüm)
       this.playerTruck = new MonsterTruck('green75', 430, 380, false);
@@ -1909,12 +1931,19 @@
       this.domStars = document.getElementById('stat-stars');
       this.domFlips = document.getElementById('stat-flips');
       this.domSpeed = document.getElementById('stat-speed');
+      this.domPillStars = document.getElementById('pill-stars');
+      this.domPillFlips = document.getElementById('pill-flips');
       this.domStuntBanner = document.getElementById('stunt-banner');
+      this.domStuntBannerText = document.getElementById('stunt-banner-text');
       this.domSwitchBtn = document.getElementById('btn-switch-truck');
       this.domBuddyBtn = document.getElementById('btn-buddy-mode');
       this.domBuddyLabel = document.getElementById('buddy-label');
+      this.domSoundBtn = document.getElementById('btn-sound');
       this.domSoundIcon = document.getElementById('sound-icon');
       this.domPauseOverlay = document.getElementById('pause-overlay');
+      this.domHudTop = document.getElementById('hud-top');
+      this.domControlsBottom = document.getElementById('controls-bottom');
+      this.lastFocusedBeforePause = null;
       this.bannerTimeout = null;
 
       this.initResize();
@@ -1935,6 +1964,17 @@
       requestAnimationFrame((ts) => this.loop(ts));
     }
 
+    pulseStatPill(pillEl) {
+      if (!pillEl) return;
+      pillEl.classList.remove('stat-pop');
+      void pillEl.offsetWidth;
+      pillEl.classList.add('stat-pop');
+      if (pillEl._popTimer) clearTimeout(pillEl._popTimer);
+      pillEl._popTimer = setTimeout(() => {
+        pillEl.classList.remove('stat-pop');
+      }, 220);
+    }
+
     initResize() {
       // iPad Retina Denge Kuralı: Maksimum DPR = 2
       this.dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -1952,6 +1992,7 @@
         this.playerTruck.y += dy;
         this.buddyTruck.y += dy;
       }
+      this.renderGaragePreviews();
     }
 
     renderGaragePreviews() {
@@ -1959,14 +2000,31 @@
         { canvasId: 'preview-canvas-75', key: 'green75' },
         { canvasId: 'preview-canvas-18', key: 'red18' }
       ];
+      const dpr = this.dpr || Math.min(window.devicePixelRatio || 1, 2);
+      const logicalW = 240;
+      const logicalH = 148;
       for (let i = 0; i < pairs.length; i++) {
         const el = document.getElementById(pairs[i].canvasId);
         if (!el) continue;
+        if (el.width !== Math.round(logicalW * dpr) || el.height !== Math.round(logicalH * dpr)) {
+          el.width = Math.round(logicalW * dpr);
+          el.height = Math.round(logicalH * dpr);
+        }
         const pctx = el.getContext('2d');
-        pctx.clearRect(0, 0, el.width, el.height);
+        pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        pctx.clearRect(0, 0, logicalW, logicalH);
+
+        // Stüdyo zemin temas gölgesi
         pctx.save();
-        pctx.translate(el.width * 0.5, el.height * 0.52);
-        pctx.scale(0.82, 0.82);
+        pctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+        pctx.beginPath();
+        pctx.ellipse(logicalW * 0.5, logicalH - 16, 86, 10, 0, 0, Math.PI * 2);
+        pctx.fill();
+        pctx.restore();
+
+        pctx.save();
+        pctx.translate(logicalW * 0.5, logicalH * 0.45);
+        pctx.scale(0.78, 0.78);
         const prof = TRUCK_PROFILES[pairs[i].key];
         drawDynamicSuspension(pctx, -54, 4, -54, 38, prof.rimColor);
         drawDynamicSuspension(pctx, 54, 4, 54, 38, prof.rimColor);
@@ -1985,7 +2043,11 @@
 
     showStuntBanner(text) {
       if (!this.domStuntBanner) return;
-      this.domStuntBanner.textContent = text;
+      if (this.domStuntBannerText) {
+        this.domStuntBannerText.textContent = text;
+      } else {
+        this.domStuntBanner.textContent = text;
+      }
       this.domStuntBanner.classList.add('show');
       if (this.bannerTimeout) clearTimeout(this.bannerTimeout);
       this.bannerTimeout = setTimeout(() => {
@@ -2004,7 +2066,7 @@
 
       // Görsel efekt ve ses
       this.sound.playBoing();
-      const label = nextKey === 'green75' ? '#75 FLAME CRUSHER! 🟢' : '#18 GAME RACING! 🔴';
+      const label = nextKey === 'green75' ? '#75 FLAME CRUSHER!' : '#18 GAME RACING!';
       this.floatingTexts.spawn(this.playerTruck.x, this.playerTruck.y - 85, label, '#ffd000', 1.15);
 
       const burstColor = nextKey === 'green75' ? '#5ce62e' : '#ff3b3b';
@@ -2023,11 +2085,25 @@
         );
       }
 
-      // HUD güncelle
-      this.domSwitchBtn.classList.toggle('active-green', nextKey === 'green75');
-      this.domSwitchBtn.classList.toggle('active-red', nextKey === 'red18');
-      document.getElementById('select-truck-75').classList.toggle('selected', nextKey === 'green75');
-      document.getElementById('select-truck-18').classList.toggle('selected', nextKey === 'red18');
+      // HUD ve Garaj Kartlarını Güncelle
+      const is75 = nextKey === 'green75';
+      this.domSwitchBtn.classList.toggle('active-green', is75);
+      this.domSwitchBtn.classList.toggle('active-red', !is75);
+
+      const card75 = document.getElementById('select-truck-75');
+      const card18 = document.getElementById('select-truck-18');
+      if (card75) {
+        card75.classList.toggle('selected', is75);
+        card75.setAttribute('aria-pressed', String(is75));
+        const badge75 = card75.querySelector('.truck-select-badge');
+        if (badge75) badge75.textContent = is75 ? 'SEÇİLİ ✓' : 'SEÇ';
+      }
+      if (card18) {
+        card18.classList.toggle('selected', !is75);
+        card18.setAttribute('aria-pressed', String(!is75));
+        const badge18 = card18.querySelector('.truck-select-badge');
+        if (badge18) badge18.textContent = !is75 ? 'SEÇİLİ ✓' : 'SEÇ';
+      }
     }
 
     toggleBuddyMode() {
@@ -2038,21 +2114,56 @@
         this.buddyTruck.y = this.playerTruck.y - 40;
         this.buddyTruck.vx = this.playerTruck.vx;
         this.buddyTruck.vy = -120;
-        this.floatingTexts.spawn(this.playerTruck.x, this.playerTruck.y - 80, '2 ARABA YARIŞTA! 🏁', '#ff9900', 1.1);
+        this.floatingTexts.spawn(this.playerTruck.x, this.playerTruck.y - 80, '2 ARABA YARIŞTA!', '#ff9900', 1.1);
       }
       this.domBuddyBtn.classList.toggle('is-on', this.buddyMode);
+      this.domBuddyBtn.setAttribute('aria-pressed', String(this.buddyMode));
       this.domBuddyLabel.textContent = this.buddyMode ? '2 ARABA: AÇIK' : '2 ARABA: KAPALI';
       this.sound.playBoing();
     }
 
+    triggerMegaRamp() {
+      this.sound.init();
+      this.world.spawnMegaRampAhead(this.playerTruck.x);
+      this.togglePause(false);
+      this.sound.playRampLaunch(true);
+      this.showStuntBanner('MEGA MAVİ RAMPA HAZIR!');
+      this.floatingTexts.spawn(this.playerTruck.x + 120, this.playerTruck.y - 95, 'MEGA MAVİ RAMPA!', '#00e5ff', 1.2);
+    }
+
     togglePause(forceState) {
-      this.paused = typeof forceState === 'boolean' ? forceState : !this.paused;
+      const nextPaused = typeof forceState === 'boolean' ? forceState : !this.paused;
+      if (nextPaused === this.paused) return;
+      this.paused = nextPaused;
       this.domPauseOverlay.classList.toggle('hidden', !this.paused);
+
+      if (this.domHudTop) {
+        this.domHudTop.toggleAttribute('inert', this.paused);
+      }
+      if (this.domControlsBottom) {
+        this.domControlsBottom.toggleAttribute('inert', this.paused);
+      }
+
       if (this.paused) {
+        this.lastFocusedBeforePause =
+          document.activeElement instanceof HTMLElement ? document.activeElement : null;
         this.input.gas = false;
         this.input.brake = false;
         this.input.nitro = false;
         this.activePointers.clear();
+        this.activeKeys.clear();
+        document.querySelectorAll('.ctrl-btn.pressed').forEach((btn) => btn.classList.remove('pressed'));
+        const resumeBtn = document.getElementById('btn-resume');
+        if (resumeBtn) {
+          resumeBtn.focus({ preventScroll: true });
+        }
+      } else if (
+        this.lastFocusedBeforePause &&
+        document.contains(this.lastFocusedBeforePause) &&
+        this.lastFocusedBeforePause !== document.body
+      ) {
+        this.lastFocusedBeforePause.focus({ preventScroll: true });
+        this.lastFocusedBeforePause = null;
       }
     }
 
@@ -2067,8 +2178,24 @@
 
       const gameContainer = document.getElementById('game-container');
       if (gameContainer) {
-        gameContainer.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
-        gameContainer.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+        gameContainer.addEventListener(
+          'touchstart',
+          (e) => {
+            if (e.touches.length > 1) {
+              e.preventDefault();
+            }
+          },
+          { passive: false }
+        );
+        gameContainer.addEventListener(
+          'touchmove',
+          (e) => {
+            if (!e.target.closest('.pause-overlay')) {
+              e.preventDefault();
+            }
+          },
+          { passive: false }
+        );
       }
 
       // iPadOS Safari ses kilidini açma ve sürdürme (pointerdown, pointerup, touchend, click)
@@ -2078,12 +2205,12 @@
       window.addEventListener('touchend', unlockAudio, { passive: true });
       window.addEventListener('click', unlockAudio, { passive: true });
 
-      // Çoklu Dokunmatik (Multi-Touch) Buton Yönetimi
+      // Çoklu Dokunmatik (Multi-Touch) ve Klavye Buton Yönetimi
       const actionButtons = document.querySelectorAll('.ctrl-btn[data-action]');
       const syncInputState = () => {
-        let gas = false;
-        let brake = false;
-        let nitro = false;
+        let gas = this.activeKeys.has('gas');
+        let brake = this.activeKeys.has('brake');
+        let nitro = this.activeKeys.has('nitro');
         for (const act of this.activePointers.values()) {
           if (act === 'gas') gas = true;
           if (act === 'brake') brake = true;
@@ -2095,6 +2222,7 @@
 
         actionButtons.forEach((btn) => {
           const a = btn.getAttribute('data-action');
+          if (a === 'jump' || a === 'horn') return;
           const isHeld =
             (a === 'gas' && gas) ||
             (a === 'brake' && brake) ||
@@ -2105,10 +2233,21 @@
 
       const clearAllInputs = () => {
         this.activePointers.clear();
+        this.activeKeys.clear();
         this.input.gas = false;
         this.input.brake = false;
         this.input.nitro = false;
         actionButtons.forEach((btn) => btn.classList.remove('pressed'));
+      };
+
+      const flashInstantButton = (btnId, durationMs = 150) => {
+        const el = document.getElementById(btnId);
+        if (!el) return;
+        el.classList.add('pressed');
+        if (el._flashTimer) clearTimeout(el._flashTimer);
+        el._flashTimer = setTimeout(() => {
+          el.classList.remove('pressed');
+        }, durationMs);
       };
 
       // Sekme değişimi, arka plana atma veya bildirim merkezi açıldığında takılı kalan tuşları temizle
@@ -2128,8 +2267,11 @@
 
       actionButtons.forEach((btn) => {
         const action = btn.getAttribute('data-action');
+        let lastPointerDownTs = 0;
 
         btn.addEventListener('pointerdown', (e) => {
+          if (e.button !== undefined && e.button !== 0) return;
+          lastPointerDownTs = performance.now();
           e.preventDefault();
           this.sound.init();
           if (btn.setPointerCapture) {
@@ -2139,21 +2281,35 @@
           }
 
           if (action === 'jump') {
-            btn.classList.add('pressed');
+            flashInstantButton('btn-jump', 140);
             this.playerTruck.triggerJump(this.sound, this.floatingTexts, this.particles);
-            setTimeout(() => btn.classList.remove('pressed'), 140);
             return;
           }
           if (action === 'horn') {
-            btn.classList.add('pressed');
+            flashInstantButton('btn-horn', 180);
             this.playerTruck.triggerHorn(this.sound, this.floatingTexts, this.particles);
-            setTimeout(() => btn.classList.remove('pressed'), 180);
             return;
           }
 
           this.activePointers.set(e.pointerId, action);
           syncInputState();
         });
+
+        // Klavye (Enter/Space) ve Yardımcı Teknoloji (VoiceOver / Switch Control) Desteği
+        if (action === 'jump' || action === 'horn') {
+          btn.addEventListener('click', (e) => {
+            if (performance.now() - lastPointerDownTs < 450) return;
+            e.preventDefault();
+            this.sound.init();
+            if (action === 'jump') {
+              flashInstantButton('btn-jump', 140);
+              this.playerTruck.triggerJump(this.sound, this.floatingTexts, this.particles);
+            } else {
+              flashInstantButton('btn-horn', 180);
+              this.playerTruck.triggerHorn(this.sound, this.floatingTexts, this.particles);
+            }
+          });
+        }
 
         const releasePointer = (e) => {
           this.sound.init();
@@ -2168,48 +2324,76 @@
         btn.addEventListener('lostpointercapture', releasePointer);
       });
 
+      // Hem 0ms gecikmeli dokunmatik (pointerdown) hem de klavye/ekran okuyucu (click) destekli buton bağlayıcı
+      const bindFastButton = (el, handler) => {
+        if (!el) return;
+        let lastPointerTs = 0;
+        el.addEventListener('pointerdown', (e) => {
+          if (e.button !== undefined && e.button !== 0) return;
+          lastPointerTs = performance.now();
+          e.preventDefault();
+          handler(e);
+        });
+        el.addEventListener('click', (e) => {
+          if (performance.now() - lastPointerTs < 450) return;
+          e.preventDefault();
+          handler(e);
+        });
+      };
+
       // Üst HUD ve Garaj Butonları
-      this.domSwitchBtn.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        this.switchTruck();
+      bindFastButton(this.domSwitchBtn, (e) => {
+        const badge = e.target.closest ? e.target.closest('[data-truck]') : null;
+        const targetKey = badge ? badge.getAttribute('data-truck') : null;
+        if (targetKey && targetKey !== this.playerTruck.profileKey) {
+          this.switchTruck(targetKey);
+        } else {
+          this.switchTruck();
+        }
       });
 
-      this.domBuddyBtn.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
+      bindFastButton(document.getElementById('btn-hud-ramp'), () => {
+        this.triggerMegaRamp();
+      });
+
+      bindFastButton(this.domBuddyBtn, () => {
         this.toggleBuddyMode();
       });
 
-      document.getElementById('btn-sound').addEventListener('pointerdown', (e) => {
-        e.preventDefault();
+      bindFastButton(this.domSoundBtn, () => {
         const muted = this.sound.toggleMute();
-        this.domSoundIcon.textContent = muted ? '🔇' : '🔊';
+        this.domSoundBtn.classList.toggle('is-muted', muted);
+        this.domSoundBtn.setAttribute('aria-pressed', String(!muted));
       });
 
-      document.getElementById('btn-pause').addEventListener('pointerdown', (e) => {
-        e.preventDefault();
+      bindFastButton(document.getElementById('btn-pause'), () => {
         this.togglePause();
       });
 
-      document.getElementById('btn-resume').addEventListener('pointerdown', (e) => {
-        e.preventDefault();
+      bindFastButton(document.getElementById('btn-close-garage'), () => {
         this.togglePause(false);
       });
 
-      document.getElementById('btn-spawn-ramp').addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        this.world.spawnMegaRampAhead(this.playerTruck.x);
-        this.togglePause(false);
-        this.sound.playRampLaunch(true);
-        this.showStuntBanner('🌊 MEGA MAVİ RAMPA HAZIR!');
+      this.domPauseOverlay.addEventListener('pointerdown', (e) => {
+        if (e.target === this.domPauseOverlay) {
+          e.preventDefault();
+          this.togglePause(false);
+        }
       });
 
-      document.getElementById('select-truck-75').addEventListener('pointerdown', (e) => {
-        e.preventDefault();
+      bindFastButton(document.getElementById('btn-resume'), () => {
+        this.togglePause(false);
+      });
+
+      bindFastButton(document.getElementById('btn-spawn-ramp'), () => {
+        this.triggerMegaRamp();
+      });
+
+      bindFastButton(document.getElementById('select-truck-75'), () => {
         this.switchTruck('green75');
       });
 
-      document.getElementById('select-truck-18').addEventListener('pointerdown', (e) => {
-        e.preventDefault();
+      bindFastButton(document.getElementById('select-truck-18'), () => {
         this.switchTruck('red18');
       });
 
@@ -2217,27 +2401,67 @@
       window.addEventListener('keydown', (e) => {
         if (e.repeat) return;
         this.sound.init();
-        if (e.code === 'ArrowRight' || e.code === 'KeyD') this.input.gas = true;
-        if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.input.brake = true;
-        if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyN') this.input.nitro = true;
-        if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+
+        if (e.code === 'KeyP' || e.code === 'Escape') {
+          e.preventDefault();
+          this.togglePause();
+          return;
+        }
+
+        // Garaj/Duraklatma açıkken sürüş kısayollarını engelle (odaklanmış butonların Enter/Space davranışını bozma)
+        if (this.paused) return;
+
+        const focusedOnButton =
+          document.activeElement &&
+          document.activeElement !== document.body &&
+          document.activeElement.tagName === 'BUTTON';
+
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+          this.activeKeys.add('gas');
+          syncInputState();
+        }
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+          this.activeKeys.add('brake');
+          syncInputState();
+        }
+        if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyN') {
+          this.activeKeys.add('nitro');
+          syncInputState();
+        }
+        if (
+          e.code === 'ArrowUp' ||
+          e.code === 'KeyW' ||
+          (e.code === 'Space' && !focusedOnButton)
+        ) {
+          if (e.code === 'Space') e.preventDefault();
+          flashInstantButton('btn-jump', 140);
           this.playerTruck.triggerJump(this.sound, this.floatingTexts, this.particles);
         }
         if (e.code === 'KeyH') {
+          flashInstantButton('btn-horn', 180);
           this.playerTruck.triggerHorn(this.sound, this.floatingTexts, this.particles);
         }
         if (e.code === 'KeyC') {
           this.switchTruck();
         }
-        if (e.code === 'KeyP' || e.code === 'Escape') {
-          this.togglePause();
+        if (e.code === 'KeyR') {
+          this.triggerMegaRamp();
         }
       });
 
       window.addEventListener('keyup', (e) => {
-        if (e.code === 'ArrowRight' || e.code === 'KeyD') this.input.gas = false;
-        if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.input.brake = false;
-        if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyN') this.input.nitro = false;
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+          this.activeKeys.delete('gas');
+          syncInputState();
+        }
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+          this.activeKeys.delete('brake');
+          syncInputState();
+        }
+        if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyN') {
+          this.activeKeys.delete('nitro');
+          syncInputState();
+        }
       });
     }
 
@@ -2246,11 +2470,13 @@
       this.starsCollected += 5;
       this.domFlips.textContent = String(this.flipsCompleted);
       this.domStars.textContent = String(this.starsCollected);
+      this.pulseStatPill(this.domPillFlips);
+      this.pulseStatPill(this.domPillStars);
 
       this.sound.playFlipFanfare();
-      const msg = isBackflip ? 'SÜPER TERS TAKLA! +5 ⭐' : 'HARİKA ÖN TAKLA! +5 ⭐';
+      const msg = isBackflip ? 'SÜPER TERS TAKLA! +5 YILDIZ' : 'HARİKA ÖN TAKLA! +5 YILDIZ';
       this.showStuntBanner(msg);
-      this.floatingTexts.spawn(this.playerTruck.x, this.playerTruck.y - 90, 'TAKLA! +5 ⭐', '#00e5ff', 1.3);
+      this.floatingTexts.spawn(this.playerTruck.x, this.playerTruck.y - 90, 'TAKLA! +5', '#00e5ff', 1.3, true);
 
       // Kutlama konfetileri
       const colors = ['#ffd000', '#00e5ff', '#5ce62e', '#ff3b3b', '#ff7700'];
@@ -2331,8 +2557,9 @@
             s.collected = true;
             this.starsCollected++;
             this.domStars.textContent = String(this.starsCollected);
+            this.pulseStatPill(this.domPillStars);
             this.sound.playStar();
-            this.floatingTexts.spawn(s.x, s.y - 20, '+1 ⭐', '#ffd700', 0.95);
+            this.floatingTexts.spawn(s.x, s.y - 20, '+1', '#ffd700', 1.0, true);
             for (let p = 0; p < 6; p++) {
               this.particles.spawn(
                 s.x,
@@ -2362,8 +2589,9 @@
             c.smashed = true;
             this.starsCollected += 2;
             this.domStars.textContent = String(this.starsCollected);
+            this.pulseStatPill(this.domPillStars);
             this.sound.playSmash();
-            this.floatingTexts.spawn(c.x, c.y - 30, 'GÜM! +2 ⭐', c.color, 1.0);
+            this.floatingTexts.spawn(c.x, c.y - 30, 'GÜM! +2', c.color, 1.05, true);
             for (let p = 0; p < 10; p++) {
               this.particles.spawn(
                 c.x,
