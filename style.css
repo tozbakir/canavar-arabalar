@@ -1,0 +1,472 @@
+/* ==========================================================================
+   Canavar Arabalar (#75 & #18) - iPadOS / Safari 60 FPS Optimize Stil Dosyası
+   ========================================================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  /* iPad basılı tutma büyüteci, metin seçimi ve çağrı menüsünü tamamen kapat */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  position: fixed;
+  inset: 0;
+  background-color: #0b162c;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Arial Black", sans-serif;
+  color: #ffffff;
+}
+
+#game-container {
+  position: relative;
+  width: 100vw;
+  width: 100dvw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  touch-action: none;
+}
+
+#game-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+/* ==========================================================================
+   Üst Gösterge Paneli (HUD)
+   ========================================================================== */
+
+#hud-top {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  right: max(16px, env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.hud-stats,
+.hud-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: clamp(1rem, 0.75rem + 1.1vw, 1.45rem);
+  letter-spacing: 0.5px;
+  border: 3px solid #ffffff;
+  background: linear-gradient(180deg, #1b2d52 0%, #0d1830 100%);
+  color: #ffffff;
+  transform: skewX(-6deg);
+}
+
+.star-pill {
+  border-color: #ffd000;
+  color: #ffe64d;
+}
+
+.flip-pill {
+  border-color: #00d9ff;
+  color: #66ecff;
+}
+
+.speed-pill {
+  border-color: #ff6a00;
+  color: #ffae42;
+}
+
+.speed-pill small {
+  font-size: 0.7em;
+  opacity: 0.9;
+}
+
+.hud-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 8px 16px;
+  border-radius: 16px;
+  border: 3px solid #ffffff;
+  font-weight: 900;
+  font-size: clamp(0.88rem, 0.65rem + 0.9vw, 1.15rem);
+  color: #ffffff;
+  cursor: pointer;
+  transition: transform 0.08s ease;
+}
+
+.hud-btn:active {
+  transform: scale(0.93);
+}
+
+.truck-switch-btn {
+  background: linear-gradient(90deg, #278c15 0%, #44cc25 45%, #e61919 55%, #a30b0b 100%);
+  padding: 6px 10px;
+  border-width: 3px;
+}
+
+.truck-badge {
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-weight: 900;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.truck-switch-btn.active-green .badge-75 {
+  background: #ffd000;
+  color: #102a05;
+  transform: scale(1.06);
+}
+
+.truck-switch-btn.active-green .badge-18 {
+  opacity: 0.78;
+}
+
+.truck-switch-btn.active-red .badge-18 {
+  background: #00d0ff;
+  color: #05162a;
+  transform: scale(1.06);
+}
+
+.truck-switch-btn.active-red .badge-75 {
+  opacity: 0.78;
+}
+
+.buddy-btn {
+  background: linear-gradient(180deg, #0077ff 0%, #0044aa 100%);
+  border-color: #70c4ff;
+}
+
+.buddy-btn.is-on {
+  background: linear-gradient(180deg, #ff7b00 0%, #cc3700 100%);
+  border-color: #ffe066;
+}
+
+.icon-btn {
+  min-width: 54px;
+  padding: 8px;
+  font-size: 1.45rem;
+  background: linear-gradient(180deg, #2b3c66 0%, #16203a 100%);
+}
+
+.pause-btn {
+  background: linear-gradient(180deg, #ff9900 0%, #cc5200 100%);
+  border-color: #fff099;
+}
+
+/* ==========================================================================
+   Havada Takla / Süper Hareket Bildirimi
+   ========================================================================== */
+
+.stunt-banner {
+  position: absolute;
+  top: 86px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.7);
+  padding: 10px 28px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff5500 0%, #ffcc00 50%, #ff5500 100%);
+  border: 4px solid #ffffff;
+  color: #120800;
+  font-weight: 900;
+  font-size: clamp(1.3rem, 1rem + 2vw, 2.3rem);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.16s ease, transform 0.16s cubic-bezier(0.2, 1.3, 0.4, 1);
+  z-index: 18;
+  white-space: nowrap;
+}
+
+.stunt-banner.show {
+  opacity: 1;
+  transform: translateX(-50%) scale(1) rotate(-2deg);
+}
+
+/* ==========================================================================
+   Alt Ergonomik Çocuk Dostu Dokunmatik Kontroller (iPad 2 El Tutuşu)
+   ========================================================================== */
+
+#controls-bottom {
+  position: absolute;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: max(18px, env(safe-area-inset-left));
+  right: max(18px, env(safe-area-inset-right));
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.control-cluster {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  pointer-events: auto;
+}
+
+.sub-cluster {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ctrl-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 26px;
+  border: 4px solid #ffffff;
+  color: #ffffff;
+  font-weight: 900;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  transition: transform 0.06s ease, filter 0.06s ease;
+}
+
+.ctrl-btn.pressed,
+.ctrl-btn:active {
+  transform: scale(0.92) translateY(4px);
+  filter: brightness(1.18);
+}
+
+.ctrl-emoji {
+  font-size: clamp(1.8rem, 1.4rem + 1.8vw, 2.7rem);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.ctrl-label {
+  font-size: clamp(0.85rem, 0.7rem + 0.7vw, 1.15rem);
+  letter-spacing: 0.7px;
+  pointer-events: none;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55);
+}
+
+/* Sol El: Geri / Takla Butonu */
+.btn-brake {
+  width: clamp(115px, 15vw, 158px);
+  height: clamp(110px, 16vh, 148px);
+  background: linear-gradient(180deg, #ff4b4b 0%, #b80d0d 100%);
+  border-color: #ffd1d1;
+}
+
+/* Sol El: Zıpla / Düzelt */
+.btn-jump {
+  width: clamp(98px, 12.5vw, 130px);
+  height: clamp(66px, 9.5vh, 84px);
+  flex-direction: row;
+  gap: 8px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #00c3ff 0%, #0066cc 100%);
+  border-color: #b8f0ff;
+}
+
+.btn-jump .ctrl-emoji,
+.btn-horn .ctrl-emoji {
+  font-size: clamp(1.35rem, 1.1rem + 1vw, 1.8rem);
+}
+
+/* Sol El: Korna */
+.btn-horn {
+  width: clamp(98px, 12.5vw, 130px);
+  height: clamp(66px, 9.5vh, 84px);
+  flex-direction: row;
+  gap: 8px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffcc00 0%, #e67300 100%);
+  border-color: #fff5b8;
+  color: #1f0d00;
+}
+
+.btn-horn .ctrl-label {
+  text-shadow: none;
+}
+
+/* Sağ El: Nitro Roket */
+.btn-nitro {
+  width: clamp(112px, 14.5vw, 152px);
+  height: clamp(110px, 16vh, 148px);
+  background: linear-gradient(180deg, #00e1ff 0%, #0051ff 55%, #5900ff 100%);
+  border-color: #a8f5ff;
+}
+
+/* Sağ El: DEV GAZ PEDALI */
+.btn-gas {
+  width: clamp(142px, 19vw, 198px);
+  height: clamp(128px, 19vh, 172px);
+  border-radius: 30px;
+  background: linear-gradient(180deg, #5ce62e 0%, #1f9908 100%);
+  border-width: 5px;
+  border-color: #e2ffcf;
+}
+
+.btn-gas .ctrl-emoji {
+  font-size: clamp(2.2rem, 1.7rem + 2.2vw, 3.2rem);
+}
+
+.btn-gas .ctrl-label {
+  font-size: clamp(1.15rem, 0.9rem + 1vw, 1.55rem);
+}
+
+/* ==========================================================================
+   Duraklatma ve Garaj Modalı
+   ========================================================================== */
+
+.pause-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 15, 34, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+
+.pause-overlay.hidden {
+  display: none;
+}
+
+.pause-card {
+  width: min(760px, 94vw);
+  background: linear-gradient(180deg, #162952 0%, #0b152c 100%);
+  border: 5px solid #00aaff;
+  border-radius: 32px;
+  padding: clamp(18px, 3vw, 32px);
+  text-align: center;
+}
+
+.pause-title {
+  font-size: clamp(1.5rem, 1.1rem + 2vw, 2.4rem);
+  color: #ffcc00;
+  margin-bottom: 6px;
+}
+
+.pause-subtitle {
+  font-size: clamp(0.95rem, 0.8rem + 0.7vw, 1.2rem);
+  color: #b8d8ff;
+  margin-bottom: 18px;
+}
+
+.truck-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.truck-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 4px solid rgba(255, 255, 255, 0.25);
+  border-radius: 24px;
+  padding: 12px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+.truck-card.selected {
+  border-color: #ffd000;
+  background: rgba(255, 208, 0, 0.14);
+  transform: scale(1.02);
+}
+
+.truck-card canvas {
+  width: 100%;
+  max-width: 240px;
+  height: auto;
+  display: block;
+  margin: 0 auto 6px;
+}
+
+.truck-card-title {
+  font-weight: 900;
+  font-size: clamp(1rem, 0.85rem + 0.8vw, 1.35rem);
+}
+
+.green-text {
+  color: #7dff4d;
+}
+
+.red-text {
+  color: #ff5c5c;
+}
+
+.truck-card-desc {
+  font-size: 0.9rem;
+  color: #d4e4ff;
+  margin-top: 2px;
+}
+
+.pause-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+}
+
+.big-action-btn {
+  padding: 14px 26px;
+  border-radius: 20px;
+  border: 4px solid #ffffff;
+  font-weight: 900;
+  font-size: clamp(1rem, 0.85rem + 0.9vw, 1.35rem);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.big-action-btn:active {
+  transform: scale(0.95);
+}
+
+.resume-btn {
+  background: linear-gradient(180deg, #4ce619 0%, #1d8c00 100%);
+}
+
+.mega-ramp-btn {
+  background: linear-gradient(180deg, #00b7ff 0%, #0051cc 100%);
+}
+
+@media (max-width: 720px) {
+  .hud-stats {
+    gap: 6px;
+  }
+  .stat-pill {
+    padding: 6px 10px;
+  }
+  #buddy-label {
+    display: none;
+  }
+}

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Canavar Arabalar">
+  <meta name="theme-color" content="#0b162c">
+  <title>Canavar Arabalar: #75 & #18 Mavi Rampa Macerası</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas" aria-label="Canavar Arabalar Mavi Rampa Atlama Oyunu"></canvas>
+
+    <!-- Üst Bilgi ve Tek Dokunuş Kontrol Çubuğu -->
+    <header id="hud-top" role="toolbar" aria-label="Oyun Bilgileri ve Araç Seçimi">
+      <div class="hud-stats">
+        <div class="stat-pill star-pill" title="Toplanan Yıldızlar">
+          <span class="stat-icon" aria-hidden="true">⭐</span>
+          <span id="stat-stars">0</span>
+        </div>
+        <div class="stat-pill flip-pill" title="Havada Taklalar">
+          <span class="stat-icon" aria-hidden="true">🌀</span>
+          <span id="stat-flips">0</span>
+        </div>
+        <div class="stat-pill speed-pill" title="Hız">
+          <span class="stat-icon" aria-hidden="true">⚡</span>
+          <span id="stat-speed">0</span>
+          <small>km/s</small>
+        </div>
+      </div>
+
+      <!-- Tek Dokunuşla #75 Yeşil ve #18 Kırmızı Araba Değiştirme -->
+      <div class="hud-actions">
+        <button id="btn-switch-truck" class="hud-btn truck-switch-btn active-green" type="button" aria-label="Araba Değiştir: Yeşil 75 veya Kırmızı 18">
+          <span class="truck-badge badge-75">#75 YEŞİL</span>
+          <span class="switch-icon" aria-hidden="true">🔄</span>
+          <span class="truck-badge badge-18">#18 KIRMIZI</span>
+        </button>
+
+        <button id="btn-buddy-mode" class="hud-btn buddy-btn is-on" type="button" aria-label="İki Araba Birlikte Yarış Modu">
+          <span aria-hidden="true">🏁</span>
+          <span id="buddy-label">2 ARABA: AÇIK</span>
+        </button>
+
+        <button id="btn-sound" class="hud-btn icon-btn" type="button" aria-label="Sesi Aç veya Kapat">
+          <span id="sound-icon" aria-hidden="true">🔊</span>
+        </button>
+
+        <button id="btn-pause" class="hud-btn icon-btn pause-btn" type="button" aria-label="Oyunu Durdur">
+          <span id="pause-icon" aria-hidden="true">⏸️</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Havada Takla / Süper Atlama Bildirim Banner'ı -->
+    <div id="stunt-banner" class="stunt-banner" aria-live="polite"></div>
+
+    <!-- Alt Ergonomik iPad Dokunmatik Kontrolleri (Çocuk Dostu Dev Butonlar) -->
+    <footer id="controls-bottom" aria-label="Sürüş Kontrolleri">
+      <!-- Sol El: Geri/Takla, Zıpla ve Korna -->
+      <div class="control-cluster cluster-left">
+        <button id="btn-brake" class="ctrl-btn btn-brake" type="button" data-action="brake" aria-label="Fren, Geri ve Geriye Takla">
+          <span class="ctrl-emoji" aria-hidden="true">⏪</span>
+          <span class="ctrl-label">GERİ / TAKLA</span>
+        </button>
+
+        <div class="sub-cluster">
+          <button id="btn-jump" class="ctrl-btn btn-jump" type="button" data-action="jump" aria-label="Zıpla ve Arabayı Düzelt">
+            <span class="ctrl-emoji" aria-hidden="true">⬆️</span>
+            <span class="ctrl-label">ZIPLA</span>
+          </button>
+
+          <button id="btn-horn" class="ctrl-btn btn-horn" type="button" data-action="horn" aria-label="Canavar Korna">
+            <span class="ctrl-emoji" aria-hidden="true">📢</span>
+            <span class="ctrl-label">KORNA</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sağ El: Nitro Roket ve Dev Gaz Pedalı -->
+      <div class="control-cluster cluster-right">
+        <button id="btn-nitro" class="ctrl-btn btn-nitro" type="button" data-action="nitro" aria-label="Süper Nitro Roket Hızlanma">
+          <span class="ctrl-emoji" aria-hidden="true">🚀</span>
+          <span class="ctrl-label">NİTRO</span>
+        </button>
+
+        <button id="btn-gas" class="ctrl-btn btn-gas" type="button" data-action="gas" aria-label="Gaz ve İleri Sürüş">
+          <span class="ctrl-emoji" aria-hidden="true">🔥</span>
+          <span class="ctrl-label">GAZ!</span>
+        </button>
+      </div>
+    </footer>
+
+    <!-- Duraklatma ve Garaj Seçim Ekranı -->
+    <div id="pause-overlay" class="pause-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+      <div class="pause-card">
+        <h1 id="pause-title" class="pause-title">🏁 CANAVAR ARABALAR GARAJI 🏁</h1>
+        <p class="pause-subtitle">Mavi Rampalardan Uçmaya Hazır Mısın?</p>
+
+        <div class="truck-selector-grid">
+          <button id="select-truck-75" class="truck-card selected" type="button">
+            <canvas id="preview-canvas-75" width="240" height="140"></canvas>
+            <div class="truck-card-title green-text">#75 FLAME CRUSHER</div>
+            <div class="truck-card-desc">Yeşil Gövde • Kırmızı Jantlar</div>
+          </button>
+
+          <button id="select-truck-18" class="truck-card" type="button">
+            <canvas id="preview-canvas-18" width="240" height="140"></canvas>
+            <div class="truck-card-title red-text">#18 GAME RACING</div>
+            <div class="truck-card-desc">Kırmızı Gövde • Mavi Jantlar</div>
+          </button>
+        </div>
+
+        <div class="pause-buttons">
+          <button id="btn-resume" class="big-action-btn resume-btn" type="button">
+            ▶️ OYUNA DEVAM ET!
+          </button>
+          <button id="btn-spawn-ramp" class="big-action-btn mega-ramp-btn" type="button">
+            🌊 ÖNÜME MEGA MAVİ RAMPA KOY!
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

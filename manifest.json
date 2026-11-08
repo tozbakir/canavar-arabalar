@@ -1,0 +1,25 @@
+{
+  "name": "Canavar Arabalar: Mavi Rampa Macerası (#75 & #18)",
+  "short_name": "Canavar Arabalar",
+  "description": "Yeşil #75 Flame Crusher ve Kırmızı #18 Game Racing ile sonsuz mavi rampa atlama oyunu!",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0b162c",
+  "theme_color": "#ff5500",
+  "icons": [
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
